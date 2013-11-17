@@ -1,0 +1,254 @@
+## -*-ruby-*- vim: set filetype=ruby :
+##
+## Nadoka Sample resource file
+## $Id$
+#
+# Copyright (c) 2004-2005 SASADA Koichi <ko1 at atdot.net>
+#
+# This program is free software with ABSOLUTELY NO WARRANTY.
+# You can re-distribute and/or modify this program under
+# the same terms of the Ruby's lisence.
+#
+#
+
+class NADOKA_Config < Nadoka::NDK_ConfigBase
+
+  ###############################################
+  # System setting
+  
+  # Setting_name = 'IRCNet'
+  #  # If you don't specify Setting_name,
+  #  # system use rc file name as setting name
+  #  # if your rc file is "test.rc", setting name is "test"
+  #  # (remove last .rc)
+  #
+  
+  # 0: quiet
+  # 1: ch log only
+  # 2: normal
+  # 3: debug
+  Loglevel = 2
+
+
+  ###############################################
+  # client server setting
+  Client_server_port = 6697 # or nil (no listen)
+  Client_server_host = nil # You can specify binding host(interface)
+  Client_server_pass = 'NadokaPassWord'
+  Client_server_acl  = nil
+  Client_server_ssl_cert_file = nil
+  Client_server_ssl_key_file  = nil
+
+  # ACL(Access Control List) example:
+  # Client_server_acl = %q{
+  #   deny all
+  #   allow 192.168.1.1
+  #   allow 192.168.2.0/24
+  # } # ACL setting must be String
+  #
+  # or you can set acl directly like follows:
+  #
+  # ACL_Object = ::ACL.new(...)
+
+  # Create a self-signed SSL certificate:
+  # $ openssl req -new -days 365 -x509 -nodes -out cert.pem -keyout key.pem
+  #
+  # And specify cert files:
+  # Client_server_ssl_cert_file = 'cert.pem'
+  # Client_server_ssl_key_file  = 'key.pem'
+
+
+  ###############################################
+  # server setting
+
+  Servers = [
+    # SSL Sample
+    {
+      :host => 'nadoka-ccvps.n-z.jp',
+      :port => 6697,
+      :pass => 'nadokapass',
+      :ssl_params => { # with :ssl_params hash, use ssl
+        # :ca_cert => "/etc/ssl/certs", # default: openssl's default certificates
+        :ca_cert => 'cacert.org.crt',
+     },
+    },
+  ]
+
+
+  ###############################################
+  # userinfo
+  User     = ENV['USER'] || ENV['USERNAME'] || 'nadokatest'
+  Nick     = ENV['USER'] || ENV['USERNAME'] || 'ndk_nick'
+  Hostname = Socket.gethostname
+  Realname = 'nadoka user'
+  Mode     = nil
+
+  Away_Message = 'away'
+
+  # If this item is String, your nick will
+  # be that when no clients are connected.
+  Away_Nick    = nil
+
+  # Quit_Message = "Quit Nadoka"
+
+
+  ###############################################
+  # channel info
+
+  # log filename format
+  #  ${setting_name} : Setting name
+  #  ${channel_name} : Channel name
+  #  %? : Time#strftime format(see ruby reference)
+  #
+
+
+  Default_log = {
+    :file           => '${setting_name}-${channel_name}/%y%m%d.log',
+    :time_format    => '%H:%M:%S',
+    :message_format => {
+      'PRIVMSG' => '<{nick}> {msg}',
+      'NOTICE'  => '{{nick}} {msg}',
+      'JOIN'    => '+ {nick} ({prefix:user}@{prefix:host})',
+      'NICK'    => '* {nick} -> {newnick}',
+      'QUIT'    => '- {nick} (QUIT: {msg}) ({prefix:user}@{prefix:host})',
+      'PART'    => '- {nick} (PART: {msg}) ({prefix:user}@{prefix:host})',
+      'KICK'    => '- {nick} was kicked by {kicker} ({msg})',
+      'MODE'    => '* {nick} changed mode ({msg})',
+      'TOPIC'   => '* TOPIC: {msg} (by {nick})',
+      'SYSTEM'  => '[NDK] {orig}',
+      'OTHER'   => '{orig}',
+      'SIMPLE'  => '{orig}',
+    },
+  }
+
+  System_log = {
+    :file           => '${setting_name}-system.log',
+    :time_format    => '%y/%m/%d-%H:%M:%S',
+    :message_format => {
+      'PRIVMSG' => '{ch} <{nick}> {msg}',
+      'NOTICE'  => '{ch} {{nick}} {msg}',
+      'JOIN'    => '{ch} + {nick} ({prefix:user}@{prefix:host})',
+      'NICK'    => '{ch} * {nick} -> {newnick}',
+      'QUIT'    => '{ch} - {nick} (QUIT: {msg}) ({prefix:user}@{prefix:host})',
+      'PART'    => '{ch} - {nick} (PART: {msg}) ({prefix:user}@{prefix:host})',
+      'KICK'    => '{ch} - {nick} was kicked by {kicker} ({msg})',
+      'MODE'    => '{ch} * {nick} changed mode ({msg})',
+      'TOPIC'   => '{ch} * TOPIC:  {msg} (by {nick})',
+      'SYSTEM'  => '[NDK] {orig}',
+      'OTHER'   => nil,
+      'SIMPLE'  => nil,
+    },
+  }
+
+  Talk_log = {
+    :file           => '${setting_name}-talk/%y%m%d.log',
+    :time_format    => Default_log[:time_format],
+    :message_format => {
+      'PRIVMSG' => '[{sender} => {receiver}] {msg}',
+      'NOTICE'  => '{{sender} => {receiver}} {msg}',
+    }
+  }
+
+  Channel_info = {
+    # nadoka talk (from Japanese server only)
+    '#nadoka' => {
+      # timing
+      #  :startup / when nadoka start up <= default
+      #  :login   / when user login
+      #  otherwise nadoka won't login automatically
+      :timing  => :startup,
+      :log     => '${setting_name}-nadoka-chan/%y%m%d.log',
+      # :part_message => "bye bye"
+      # :initial_mode => "+s"
+    },
+    '#nadoka:*.jp' => {
+      :timing  => :startup,
+      :log     => '${setting_name}-nadoka-chan-jp/%y%m%d.log',
+    },
+
+    # nadoka bot channel
+    '#nadoka_check' => {
+      :timing => :startup,
+      :log => '${setting_name}-nadoka-check/%y%m%d.log',
+      # you can specify store backlog lines
+      :backlog_lines => 5,
+    },
+
+    # 
+    # '#log_setting_example' => {
+    #   :log => {
+    #      :file        => 'logfilename',   # log filename
+    #      # :io => $stderr, # or IO object is supported
+    #      :time_format => '%H:%M:%S',
+    #      # :channel_name_in_file_name => 'hoge'
+    #
+    #      :message_format => {
+    #        'PRIVMSG' => '<{nick}> {msg}',
+    #        'NOTICE'  => '{{nick}} {msg}',
+    #        'JOIN'    => '+ {nick} to {ch}',
+    #        'NICK'    => '* {nick} -> {newnick}',
+    #        'QUIT'    => '- {nick} ({msg})',
+    #        'PART'    => '- {nick} from {ch} ({msg})',
+    #        'KICK'    => '- {nick} kicked by {kicker} ({msg}) from {ch}',
+    #        'MODE'    => '* {nick} changed mode ({msg})',
+    #        'TOPIC'   => '<{ch} TOPIC> {msg}',
+    #        'SYSTEM'  => '[NDK] {msg}',
+    #        'OTHER'   => nil,
+    #        'SIMPLE'  => nil,
+    #   
+    #     # for more complex log output:
+    #     # :logwriterclass => your_log_writer_class,
+    #     # :logwriter      => your_log_writer_instance,
+    #     # :other_logwriterclass_specific_setting => ...,
+    #   },
+    # },
+  }
+
+  BackLog_Lines = 20
+
+  #
+  # FilenameEncoding = 'euc'
+  # FilenameEncoding = 'sjis'
+  # FilenameEncoding = 'utf8'
+  #
+  # If you not specify FilenameEncoding, nadoka infers
+  # suitable encoding (see ndk/config.rb).
+  #
+  
+  ###############################################
+  # Directory
+  Log_dir     = './log'
+
+  #Plugins_dir = './plugins'
+  Plugins_dir = Default_Plugins_dir
+  # You can set Plugins_dir as Enumerable object.
+  # ex: ['./dir1', './dir2', ...]
+
+
+  ###############################################
+  # Bots
+  BotConfig = [
+    # :BotName1,
+    # :BotName1,
+    # 'BotName1',
+    # :BotName2,
+    # { :name => :BotName3,
+    #   :set1 => setting1,
+    # },
+    # { :name => :BotName3,
+    #   :set1 => setting2,
+    # },
+    # { :name => :BotName4,
+    #   :set1 => setting3,
+    # },
+
+    :BackLogBot, # strongly recommended
+  ]
+
+
+  ###############################################
+  # Misc
+
+  Privmsg_Filter = nil
+  Notice_Filter  = nil
+end
